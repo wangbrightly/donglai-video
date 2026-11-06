@@ -159,6 +159,7 @@ struct ContentView: View {
     @State private var search = ""
     @State private var historyOnly = false
     @State private var showSpeeds = false
+    @State private var showAppreciation = false
     var filtered: [Video] {
         let items = historyOnly ? library.history.compactMap { id in library.videos.first { $0.id == id } } : library.videos
         return search.isEmpty ? items : items.filter { $0.name.localizedCaseInsensitiveContains(search) }
@@ -204,7 +205,12 @@ struct ContentView: View {
                         if filtered.isEmpty { Text(library.loading ? "正在加载…" : "没有找到视频").font(.callout).foregroundStyle(Theme.muted).padding(.top, 45) }
                     }.padding(.horizontal, 10)
                 }
-                Text("胖东来百科 · \(library.videos.count) 个视频").font(.caption).foregroundStyle(Theme.muted).padding(18)
+                HStack {
+                    Text("胖东来百科 · \(library.videos.count) 个视频").font(.caption).foregroundStyle(Theme.muted)
+                    Spacer()
+                    Button { showAppreciation = true } label: { Label("赞赏", systemImage: "heart") }
+                        .buttonStyle(.plain).foregroundStyle(Theme.accent)
+                }.padding(18)
             }.background(Theme.panel).navigationSplitViewColumnWidth(min: 280, ideal: 330)
         } detail: {
             VStack(alignment: .leading, spacing: 0) {
@@ -261,6 +267,17 @@ struct ContentView: View {
                 }.padding(.horizontal, 24).padding(.vertical, 18).background(Theme.background)
             }.background(Theme.background)
         }.frame(minWidth: 850, minHeight: 540).preferredColorScheme(.dark).tint(Theme.accent).task { await library.load() }
+        .sheet(isPresented: $showAppreciation) {
+            VStack(spacing: 14) {
+                Text("感谢赞赏").font(.title2.bold())
+                if let url = Bundle.main.url(forResource: "appreciation", withExtension: "png") ?? URL(string: "Resources/appreciation.png", relativeTo: URL(fileURLWithPath: #filePath).deletingLastPathComponent()), let image = NSImage(contentsOf: url) {
+                    Image(nsImage: image).resizable().scaledToFit().frame(width: 360, height: 360)
+                } else {
+                    Text("赞赏码加载失败").foregroundStyle(Theme.muted)
+                }
+                Button("关闭") { showAppreciation = false }.keyboardShortcut(.cancelAction)
+            }.padding(24).background(Theme.panel).preferredColorScheme(.dark)
+        }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)) { _ in library.savePosition() }
     }
     func tab(_ title: String, icon: String, selected: Bool, action: @escaping () -> Void) -> some View {
